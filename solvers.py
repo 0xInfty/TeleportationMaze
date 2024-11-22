@@ -75,6 +75,16 @@ class DoublePriorityQueue(PriorityQueue):
         self.heap.append(new_f_value, node, parent)
         heapq.heapify(self.heap)
 
+def trace_solution(graph_problem, final_node):
+    #-- Trace the solution --#
+    solution_path = [final_node]
+    cnode = final_node.parent
+    solution_path.append(cnode)
+    while cnode.state != graph_problem.initial:
+        cnode = cnode.parent  
+        solution_path.append(cnode)
+    return solution_path
+
 def wormholes_maze_A_star_solver(maze_problem, verbose=True):
     """Search the nodes with the lowest f scores first.
 
@@ -117,7 +127,8 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True):
         node_colors[node.state] = "limegreen"
         iterations += 1
         all_node_colors.append(dict(node_colors))
-        return(iterations, all_node_colors, node)
+        solution_path = trace_solution(maze_problem, node)
+        return (iterations, all_node_colors, node, solution_path)
     
     frontier = DoublePriorityQueue('min')
     frontier.append(0, node, None)
@@ -152,7 +163,8 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True):
                 node_colors[extra_node] = "limegreen"  
             iterations += 1
             all_node_colors.append(dict(node_colors))
-            return(iterations, all_node_colors, node)
+            solution_path = trace_solution(maze_problem, node)
+            return (iterations, all_node_colors, node, solution_path)
 
         comment("Will go over the following childs:", node.expand(maze_problem))
         for child in node.expand(maze_problem):
@@ -189,6 +201,7 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True):
         iterations += 1
         all_node_colors.append(dict(node_colors))
         comment("Current queue", frontier.heap)
+        
     return None
 
 #%% OLD VERSIONS
