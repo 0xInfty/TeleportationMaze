@@ -217,7 +217,7 @@ def show_wormholes_maze_problem(maze_problem, node_colors=None, iterations=None)
     maze_graph_data = get_wormholes_maze_graphic_data(maze_problem, node_colors)
     
     title = f"{iterations:.0f} iterations" if iterations is not None else None
-    show_map(maze_graph_data, title=title)
+    return show_map(maze_graph_data, title=title)
 
 #%% OLD VERSIONS
 
