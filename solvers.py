@@ -85,7 +85,7 @@ def trace_solution(graph_problem, final_node):
         solution_path.append(cnode)
     return solution_path
 
-def wormholes_maze_A_star_solver(maze_problem, verbose=True):
+def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1250):
     """Search the nodes with the lowest f scores first.
 
     The scoring function f(x) is calculating adding up...
@@ -128,7 +128,7 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True):
         iterations += 1
         all_node_colors.append(dict(node_colors))
         solution_path = trace_solution(maze_problem, node)
-        return (iterations, all_node_colors, node, solution_path)
+        return (iterations, solution_path, all_node_colors)
     
     frontier = DoublePriorityQueue('min')
     frontier.append(0, node, None)
@@ -164,7 +164,7 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True):
             iterations += 1
             all_node_colors.append(dict(node_colors))
             solution_path = trace_solution(maze_problem, node)
-            return (iterations, all_node_colors, node, solution_path)
+            return (iterations, solution_path, all_node_colors)
 
         comment("Will go over the following childs:", node.expand(maze_problem))
         for child in node.expand(maze_problem):
@@ -201,6 +201,10 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True):
         iterations += 1
         all_node_colors.append(dict(node_colors))
         comment("Current queue", frontier.heap)
+
+        if iterations>=limit:
+            print("Iterations limit reached")
+            return (iterations, None, all_node_colors)
         
     return None
 
@@ -290,7 +294,8 @@ def multiple_priority_A_star_f_solver(problem, f):
         node_colors[node.state] = "limegreen"
         iterations += 1
         all_node_colors.append(dict(node_colors))
-        return(iterations, all_node_colors, node)
+        solution_path = trace_solution(problem, node)
+        return (iterations, solution_path, all_node_colors)
     
     # frontier = sch.PriorityQueue('min', f)
     frontier = MultiplePriorityQueue('min', f)
@@ -316,7 +321,8 @@ def multiple_priority_A_star_f_solver(problem, f):
                 node_colors[extra_node] = "limegreen"  
             iterations += 1
             all_node_colors.append(dict(node_colors))
-            return(iterations, all_node_colors, node)
+            solution_path = trace_solution(maze_problem, node)
+            return (iterations, solution_path, all_node_colors)
         
         explored.add(node.state)
         for child in node.expand(problem):
@@ -354,4 +360,4 @@ def multiple_priority_A_star_h_solver(problem, h=None):
     iterations, all_node_colors, node = multiple_priority_A_star_f_solver(
         problem, lambda node, parent : node.path_cost + h(node, parent)
     )
-    return(iterations, all_node_colors, node)
+    return (iterations, solution_path, all_node_colors)
