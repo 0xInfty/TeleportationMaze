@@ -85,7 +85,7 @@ def trace_solution(graph_problem, final_node):
         solution_path.append(cnode)
     return solution_path
 
-def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1250):
+def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
     """Search the nodes with the lowest f scores first.
 
     The scoring function f(x) is calculating adding up...
