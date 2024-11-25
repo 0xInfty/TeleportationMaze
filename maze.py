@@ -13,12 +13,12 @@ from IPython.display import display
 import warnings
 warnings.filterwarnings("ignore")
 
-# To import the AIMA toolbox, add path the to the AIMA Python Toolbox folder on your system
-AIMA_TOOLBOX_ROOT = "/home/valeria/Documents/Code/aima-python-uofg_v20202021a"
-sys.path.append(AIMA_TOOLBOX_ROOT)
+import plotter as pter # Adds AIMA toolbox to path
+# AIMA_TOOLBOX_ROOT="/home/valeria/Documents/Code/aima-python-uofg_v20202021a"
+# sys.path.append(AIMA_TOOLBOX_ROOT)
 
 import search as sch
-from notebookutils import show_map#, display_visual
+# from notebookutils import show_map#, display_visual
 
 #%% HELPER FUNCTIONS
 
@@ -91,7 +91,7 @@ def wormholes_maze_structure(N, M, show_plots=False):
     else: wormholes = []
 
     # Optional: show map
-    if show_map:
+    if show_plots:
         fontsize = "large" if N<=13 else "medium"
         plt.imshow(maze_grid, cmap="gray", origin="lower")
         for w_k in range(M):
@@ -217,7 +217,7 @@ def show_wormholes_maze_problem(maze_problem, node_colors=None, iterations=None)
     maze_graph_data = get_wormholes_maze_graphic_data(maze_problem, node_colors)
     
     title = f"{iterations:.0f} iterations" if iterations is not None else None
-    return show_map(maze_graph_data, title=title)
+    return pter.show_map(maze_graph_data, title=title)
 
 #%% OLD VERSIONS
 
