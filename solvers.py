@@ -75,6 +75,134 @@ class DoublePriorityQueue(AIMAPriorityQueue):
 def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
     """Search the nodes with the lowest f scores first.
 
+    The scoring function f(x) is calculated adding up...
+    ...the path cost g(x) calculated using the weights in the network links
+    ...the heuristic function h(x) from the problem
+    
+    Partial credit to the AI Module lecturers: this function has been taken 
+    from Lab 3 before being modified.
+    
+    In contrast with the original...
+    ...This function sets f(x) = g(x) + h(x) using the problem's heuristic 
+    function h, allowing no modifications
+    ...This function stores both node and parent inside of the frontier queue.
+    It therefore requires `DoublePriorityQueue` to work
+    ...It also requires `WormholesGraphProblem` or a similar subclass of my 
+    custom-made `maze.GraphProblem` class, because the `h` function needs to 
+    take input `node, parent` or at the very least accept `node, *args`.
+    ...This function returns the solution path and does not return the final 
+    node
+    ...This function contains plenty of optional annotations to describe the 
+    progress while running    
+    """
+    
+    def comment(*args):
+        if verbose: print(*args)
+    maze_problem.verbose = verbose
+
+    iterations = 0
+    comment(">> Iteration", iterations, ">> Setting up the problem")
+    all_node_colors = []
+    node_colors = {k : 'white' for k in maze_problem.graph.nodes()}
+    
+    iterations += 1
+    comment(">> Iteration", iterations, ">> Adding the start point")
+    node = sch.Node(maze_problem.initial)
+    node.parent = None
+    node_colors[node.state] = "red"    
+    all_node_colors.append(dict(node_colors))
+    
+    if maze_problem.goal_test(node.state):
+        node_colors[node.state] = "limegreen"
+        iterations += 1
+        all_node_colors.append(dict(node_colors))
+        solution_path = trace_solution(maze_problem, node)
+        return (iterations, solution_path, all_node_colors)
+    
+    frontier = DoublePriorityQueue('min')
+    frontier.append(0, node, None)
+    
+    node_colors[node.state] = "orange"
+    iterations += 1
+    all_node_colors.append(dict(node_colors))
+    
+    explored = set()
+    while frontier:
+
+        comment(">> Iteration", iterations, ">> Exploring a node in the frontier")
+        f_value, node, parent = frontier.pop()
+        comment("== Node", (f_value, node, parent), "popped out")
+        node_colors[node.state] = "red"
+        iterations += 1
+        all_node_colors.append(dict(node_colors))
+        explored.add(node.state)
+        
+        if maze_problem.goal_test(node.state):
+            comment(">> Iteration", iterations, ">> Goal has been found")
+            node_colors[node.state] = "limegreen"
+            node_colors[maze_problem.initial] = "limegreen"
+            for extra_node in node.solution():
+                node_colors[extra_node] = "limegreen"  
+            iterations += 1
+            all_node_colors.append(dict(node_colors))
+            solution_path = trace_solution(maze_problem, node)
+            return (iterations, solution_path, all_node_colors)
+
+        comment("Will go over the following childs:", node.expand(maze_problem))
+        for child in node.expand(maze_problem):
+            comment("== Child", child)
+            child_h_value = maze_problem.h(child, node)
+            child_f_value = child_h_value + child.path_cost
+            if child.state not in explored and child not in frontier:
+                comment(">> Iteration", iterations, ">> Adding that child to the frontier")
+                frontier.append(child_f_value, child, node)
+                comment("Added", (child_f_value, child, node))
+                node_colors[child.state] = "orange"
+                iterations += 1
+                all_node_colors.append(dict(node_colors))
+            elif child in frontier:
+                comment(">> Iteration", iterations, ">> Detected that child already inside the frontier")
+                incumbent_f_value, incumbent_node, incumbent_parent = frontier[child]
+                comment("Examining previous", (incumbent_f_value, incumbent_node, incumbent_parent))
+                if child_f_value < incumbent_f_value:
+                    del frontier[incumbent_node]
+                    frontier.append(child_f_value, child, node)
+                    comment("= Removed that and added", (child_f_value, child, node), "instead")
+                    node_colors[child.state] = "orange"
+                    iterations += 1
+                    all_node_colors.append(dict(node_colors))
+                else:
+                    comment("= Kept", (incumbent_f_value, incumbent_node, incumbent_parent))
+            else:
+                comment("Child had already been explored")
+
+        comment(">> Iteration", iterations, ">> Finished exploring a node")
+        node_colors[node.state] = "gray"
+        iterations += 1
+        all_node_colors.append(dict(node_colors))
+        comment("Current queue", frontier.heap)
+
+        if iterations>=limit:
+            print("Iterations limit reached")
+            return (iterations, None, all_node_colors)
+        
+    return (iterations, None, all_node_colors)
+
+def trace_solution(graph_problem, final_node):
+    #-- Trace the solution --#
+    solution_path = [final_node]
+    cnode = final_node.parent
+    solution_path.append(cnode)
+    while cnode.state != graph_problem.initial:
+        cnode = cnode.parent  
+        solution_path.append(cnode)
+    return solution_path
+
+#%% OLD VERSIONS
+
+def wormholes_maze_A_star_solver_v2(maze_problem, verbose=True, limit=1000):
+    """Search the nodes with the lowest f scores first.
+
     The scoring function f(x) is calculating adding up...
     ...the path cost g(x) calculated using the weights in the network links
     ...the heuristic function h(x) returing the euclidean distance for 
@@ -205,18 +333,6 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
             return (iterations, None, all_node_colors)
         
     return (iterations, None, all_node_colors)
-
-def trace_solution(graph_problem, final_node):
-    #-- Trace the solution --#
-    solution_path = [final_node]
-    cnode = final_node.parent
-    solution_path.append(cnode)
-    while cnode.state != graph_problem.initial:
-        cnode = cnode.parent  
-        solution_path.append(cnode)
-    return solution_path
-
-#%% OLD VERSIONS
 
 def wormholes_maze_A_star_solver_v1(maze_problem, verbose=True, limit=1000):
     """Search the nodes with the lowest f scores first.

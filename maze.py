@@ -105,7 +105,28 @@ def wormholes_maze_structure(N, M, show_plots=False):
 
     return maze_grid, wormholes
 
-class WormholesGraphProblem(sch.GraphProblem):
+class GraphProblem(sch.GraphProblem):
+
+    """The problem of searching a graph from one node to another.
+    
+    Credits to the 'Artificial Intelligence: a Modern Approach' authors 
+    on whose repository this class is based.
+
+    Sole difference with the original is that the heuristic function h 
+    accepts optional arguments"""
+
+    def h(self, node, *args):
+        """h function is straight-line distance from a node's state to goal."""
+        locs = getattr(self.graph, 'locations', None)
+        if locs:
+            if type(node) is str:
+                return int(sch.distance(locs[node], locs[self.goal]))
+
+            return int(sch.distance(locs[node.state], locs[self.goal]))
+        else:
+            return sch.infinity
+
+class WormholesGraphProblem(GraphProblem):
     """The problem of searching a graph with teleportation links.
     
     An agent at the start of a teleportation link can choose to go down the wormhole.
@@ -229,7 +250,6 @@ def wormholes_maze_problem(N, M, show_plots=False):
 
 def get_wormholes_maze_graphic_data(maze_problem, node_colors=None):
 
-    # node colors, node positions and node label positions
     if node_colors is None:
         node_colors = {node: 'white' for node in maze_problem.graph.locations.keys()}
     node_positions = maze_problem.graph.locations
