@@ -5,15 +5,12 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import maze as m # Adds AIMA toolbox to path
-# AIMA_TOOLBOX_ROOT="/home/valeria/Documents/Code/aima-python-uofg_v20202021a"
-# sys.path.append(AIMA_TOOLBOX_ROOT)
 
 import heapq
 import search as sch
-# from notebookutils import show_map, display_visual
-from aimautils import PriorityQueue
+from aimautils import PriorityQueue as AIMAPriorityQueue
 
-class DoublePriorityQueue(PriorityQueue):
+class DoublePriorityQueue(AIMAPriorityQueue):
     """A Queue in which elements are returned ordered according to an f value.
     
     If order is 'min', the item with minimum f is returned first; if order is 
@@ -75,16 +72,6 @@ class DoublePriorityQueue(PriorityQueue):
         self.heap.append(new_f_value, node, parent)
         heapq.heapify(self.heap)
 
-def trace_solution(graph_problem, final_node):
-    #-- Trace the solution --#
-    solution_path = [final_node]
-    cnode = final_node.parent
-    solution_path.append(cnode)
-    while cnode.state != graph_problem.initial:
-        cnode = cnode.parent  
-        solution_path.append(cnode)
-    return solution_path
-
 def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
     """Search the nodes with the lowest f scores first.
 
@@ -97,12 +84,21 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
     taken from Lab 3 before being modified.
     
     In contrast with the original...
-    ...This function stores both node and parent inside of the queue
+    ...This function sets f(x) = g(x) + h(x) and does not allow modifications
+    ...This function stores both node and parent inside of the frontier queue
     ...It requires `DoublePriorityQueue` to work
-    ...It also requires `WormholesGraphProblem`, because it uses its 
-    `is_wormhole` method
-    ...This function contains plenty of annotations to describe the progress 
-    while running
+    ...It also requires `WormholesGraphProblem` or similar, because the `h` 
+    function needs to take input `node, parent` or at the very least accept
+    `node, *args`.
+    ...This function saves explored nodes inside of a dictionary, instead of 
+    a set, because it requires access to nodes' parents
+    ...This function replaces stored explored nodes in the case that the same 
+    node is revisited later following a different, shorter path
+    TODO: This might not be necessary anymore
+    ...This function returns the solution path and does not return the final 
+    node
+    ...This function contains plenty of optional annotations to describe the 
+    progress while running    
     """
     
     def comment(*args):
@@ -117,6 +113,7 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
     iterations += 1
     comment(">> Iteration", iterations, ">> Adding the start point")
     node = sch.Node(maze_problem.initial)
+    node.parent = None
     node_colors[node.state] = "green"    
     all_node_colors.append(dict(node_colors))
     
@@ -134,7 +131,7 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
     iterations += 1
     all_node_colors.append(dict(node_colors))
     
-    explored = set()
+    explored = dict()
     while frontier:
 
         comment(">> Iteration", iterations, ">> Exploring a node in the frontier")
@@ -143,7 +140,7 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
         node_colors[node.state] = "red"
         iterations += 1
         all_node_colors.append(dict(node_colors))
-        explored.add(node.state)
+        explored.update({node.state: node})
         
         if maze_problem.goal_test(node.state):
             comment(">> Iteration", iterations, ">> Goal has been found")
@@ -159,18 +156,10 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
         comment("Will go over the following childs:", node.expand(maze_problem))
         for child in node.expand(maze_problem):
             comment("== Child", child)
-            if child.state not in explored and child not in frontier:
+            child_h_value = maze_problem.h(child, node)
+            child_f_value = child_h_value + child.path_cost
+            if child.state not in explored.keys() and child not in frontier:
                 comment(">> Iteration", iterations, ">> Adding that child to the frontier")
-                if maze_problem.is_wormhole(child, node):
-                    # If wormhole, you know the distance to the goal from the child
-                    # So we will use the distance to the goal from the parent
-                    child_h_value = maze_problem.h(node) - 1
-                    # Subtract one, because then we will add 1 due to the step cost
-                    # The end result is a nondecreasing h(n) function, because it stays the same
-                else:
-                    child_h_value = maze_problem.h(child)
-                    # If not wormhole, you know the distance
-                child_f_value = child.path_cost  + child_h_value
                 frontier.append(child_f_value, child, node)
                 comment("Added", (child_f_value, child, node))
                 node_colors[child.state] = "orange"
@@ -179,17 +168,6 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
             elif child in frontier:
                 comment(">> Iteration", iterations, ">> Detected that child already inside the frontier")
                 incumbent_f_value, incumbent_node, incumbent_parent = frontier[child]
-                if maze_problem.is_wormhole(child, node):
-                    # If wormhole, you know the distance to the goal from the child
-                    # So we will use the distance to the goal from the parent
-                    child_h_value = maze_problem.h(node) - 1
-                    # Subtract one, because then we will add 1 due to the step cost
-                    # The end result is a nondecreasing h(n) function, because it stays the same
-                else:
-                    child_h_value = maze_problem.h(child)
-                    # If not wormhole, you know the distance
-                # child_h_value = maze_problem.h(node, is_unknown=maze_problem.is_wormhole(child, node))
-                child_f_value = child.path_cost + child_h_value
                 comment("Examining previous", (incumbent_f_value, incumbent_node, incumbent_parent))
                 if child_f_value < incumbent_f_value:
                     del frontier[incumbent_node]
@@ -201,7 +179,20 @@ def wormholes_maze_A_star_solver(maze_problem, verbose=True, limit=1000):
                 else:
                     comment("= Kept", (incumbent_f_value, incumbent_node, incumbent_parent))
             else:
-                comment("Child had already been explored")
+                explored_node = explored[node.state]
+                explored_parent = explored_node.parent
+                if explored_parent and explored_parent.state != node.state: 
+                    comment(">> Iteration", iterations, ">> Same child with different parent is inside the explored set")
+                    explored_h_value = maze_problem.h(explored_node, explored_parent)
+                    if child_h_value < explored_h_value:
+                        explored[node.state] = child
+                        iterations += 1
+                        all_node_colors.append(dict(node_colors))
+                        comment("= Removed that and added", (child_f_value, child, node), "instead")
+                    else:
+                        comment("= Kept", (explored_h_value, explored_node, explored_parent), "instead")
+                else:
+                    comment("Child had already been explored")
 
         comment(">> Iteration", iterations, ">> Finished exploring a node")
         node_colors[node.state] = "gray"
@@ -356,7 +347,7 @@ def wormholes_maze_A_star_solver_v1(maze_problem, verbose=True, limit=1000):
 
 #%% OLDER VERSIONS
 
-class MultiplePriorityQueue(PriorityQueue):
+class MultiplePriorityQueue(AIMAPriorityQueue):
     """A Queue in which elements are returned ordered according to f.
     
     If order is 'min', the item with minimum f(x) is returned first; if order is 
@@ -507,3 +498,64 @@ def multiple_priority_A_star_h_solver(problem, h=None):
         problem, lambda node, parent : node.path_cost + h(node, parent)
     )
     return (iterations, solution_path, all_node_colors)
+
+# EXTRA UNUSED CODE
+
+class PriorityQueue(AIMAPriorityQueue):
+    """A Queue in which elements are returned ordered according to an f value.
+    
+    If order is 'min', the item with minimum f is returned first; if order is 
+    'max', then it is the item with maximum f. Also supports dict-like lookup.
+
+    In contrast with AIMA's implementation...
+    ...This queue doesn't automatically calculate `f(input)`: it needs 
+    `f(input), input` as the input to the `append` method"""
+
+    def __init__(self, order='min'):
+        assert order in ["min", "max"], "Needs to be 'min' or 'max'"
+        self.order = order
+        self.heap = []
+
+    def append(self, f_value, node):
+        """Insert item at its correct position."""
+        if self.order == 'min':
+            heapq.heappush(self.heap, (f_value, node))
+        elif self.order == 'max':  # now item with max f(x)
+            heapq.heappush(self.heap, (-f_value, node))  # will be popped first
+
+    def extend(self, f_values, nodes):
+        """Insert each item in items at its correct position."""
+        for f_value, node in zip(f_values, nodes):
+            self.append(f_value, node)
+
+    def pop(self):
+        """Pop and return the item with min or max f(x) value
+        depending on the order."""
+        if self.heap:
+            return heapq.heappop(self.heap)
+        else:
+            raise Exception('Trying to pop from empty PriorityQueue.')
+
+    def __contains__(self, node):
+        """Return True if item in PriorityQueue."""
+        nodes = [n for (f, n, p) in self.heap]
+        return node in nodes
+
+    def __getitem__(self, node):
+        for f, n, p in self.heap:
+            if n==node:
+                return f, n, p
+
+    def __delitem__(self, node):
+        """Delete the first occurrence of key."""
+        nodes = [n for (f, n, p) in self.heap]
+        index = nodes.index(node)
+        self.heap.remove(self.heap[index])
+        heapq.heapify(self.heap)
+
+    def update_item(self, f_value, node, new_f_value):
+        """Delete the first occurrence of key."""
+        index = self.heap.index((f_value, node))
+        self.heap.remove(self.heap[index])
+        self.heap.append(new_f_value, node)
+        heapq.heapify(self.heap)
