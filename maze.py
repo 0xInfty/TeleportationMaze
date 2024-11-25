@@ -111,21 +111,31 @@ class WormholesGraphProblem(sch.GraphProblem):
     An agent at the start of a teleportation link can choose to go down the wormhole.
     However, it cannot know in advance where the exit is
     
-    The included heuristic function $h$ is consistent if the graph has uniform cost 1.
+    The included heuristic function $h$ is consistent if the graph has uniform cost $c$.
     - For any tile $n_i$ that is neither the entrance nor the exit of a wormhole, 
     $h(n_i)$ returns the Euclidean distance to the goal
     - For any tile $n_i$ that is the entrance of a wormhole, the heuristic function 
-    returns $ $ a value such that $f(n_i)=h(n_i)+g(n_i)$ matches $f(n')$ where $n'$ 
-    is $n$'s parent
-    - For any tile $n$ that is the exit of a wormhole, the heuristic function 
-    returns a value such that $f(n)=h(n)+g(n)$ matches $f(n')$ where $n'$ is $n$'s 
-    parent
+    returns $h(n_i)=h(n_{i-1})-c$, so that $f(n_i)=f(n_{i-1})$ matches its parent's 
+    because $f(n_i)=h(n_i)+g(n_i)=h(n_i)+g(n_{i-1})+c$
+    - For any tile $n_i$ that is the exit of a wormhole, the heuristic function 
+    returns $h(n_i)=h(n_{i-2})-2c$, so that $f(n_i)=f(n_{i-2})$ matches its 
+    grandparent's because $f(n_i)=h(n_i)+g(n_i)=h(n_i)+g(n_{i-1})+c=h(n_i)+g(n_{i-2})+2c$
     """
 
-    def __init__(self, start, end, map, wormholes, verbose=False):
-        super().__init__(start, end, map)
+    def __init__(self, start, end, graph, wormholes, verbose=False):
+        self.step_cost = list(list(graph.graph_dict.values())[0].values())[0]
+        self.check_uniform_cost(graph)
+        super().__init__(start, end, graph)
         self.wormholes = wormholes
         self.verbose = verbose
+
+    def check_uniform_cost(self, graph):
+        correct = True
+        for connections in graph.graph_dict.values():
+            for step_cost in connections.values():
+                correct = correct and step_cost == self.step_cost
+        if not correct:
+            raise ValueError("Proposed map does not have uniform cost")
 
     def is_wormhole(self, node, parent):
         return self.is_wormhole_entrance(node) or self.is_wormhole_link(node, parent)
@@ -165,12 +175,13 @@ class WormholesGraphProblem(sch.GraphProblem):
             return self.distance_to_goal(node)
         elif self.is_wormhole_entrance(node):
             parent_h = self.distance_to_goal(parent)
-            print("Parent had h", parent_h, "so h is set to be", parent_h - 1)
-            return parent_h - 1
+            print("Parent had h", parent_h, "so h is set to be", parent_h - self.step_cost)
+            return parent_h - self.step_cost
         else:
             grandparent_h = self.distance_to_goal(parent.parent)
-            print("Grandprarent had h", grandparent_h, "so h is set to be", grandparent_h - 2)
-            return grandparent_h - 2
+            print("Grandprarent had h", grandparent_h, "so h is set to be", 
+                  grandparent_h - 2*self.step_cost)
+            return grandparent_h - 2*self.step_cost
 
 def wormholes_maze_grid(N, M, show_plots=False):
 
