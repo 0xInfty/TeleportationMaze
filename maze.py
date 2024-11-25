@@ -109,46 +109,68 @@ class WormholesGraphProblem(sch.GraphProblem):
     """The problem of searching a graph with teleportation links.
     
     An agent at the start of a teleportation link can choose to go down the wormhole.
-    However, it cannot know in advance where the exit is"""
+    However, it cannot know in advance where the exit is
+    
+    The included heuristic function $h$ is consistent if the graph has uniform cost 1.
+    - For any tile $n_i$ that is neither the entrance nor the exit of a wormhole, 
+    $h(n_i)$ returns the Euclidean distance to the goal
+    - For any tile $n_i$ that is the entrance of a wormhole, the heuristic function 
+    returns $ $ a value such that $f(n_i)=h(n_i)+g(n_i)$ matches $f(n')$ where $n'$ 
+    is $n$'s parent
+    - For any tile $n$ that is the exit of a wormhole, the heuristic function 
+    returns a value such that $f(n)=h(n)+g(n)$ matches $f(n')$ where $n'$ is $n$'s 
+    parent
+    """
 
     def __init__(self, start, end, map, wormholes, verbose=False):
         super().__init__(start, end, map)
         self.wormholes = wormholes
         self.verbose = verbose
 
-    def result(self, state, action):
-        """The result of going to a neighbor is just that neighbor."""
-        return action
-
     def is_wormhole(self, node, parent):
+        return self.is_wormhole_entrance(node) or self.is_wormhole_link(node, parent)
+
+    def is_wormhole_entrance(self, node):
         if type(node) is not str:
             node = node.state
-        if parent and type(parent) is not str:
-            parent = parent.state
-        if parent and node in self.wormholes:
+        if node in self.wormholes[::2]:
+            if self.verbose: print("Teleportation link entrance")
+            return True
+        return False
+
+    def is_wormhole_link(self, node, parent):
+        if type(node) is not str: node = node.state
+        if parent is not None and node in self.wormholes:
             index = self.wormholes.index(node)
+            if type(parent) is not str: parent = parent.state
             if index>0 and parent==self.wormholes[index-1]:
                 if self.verbose: print("Teleportation link")
                 return True
         return False
 
-    def h(self, node, is_unknown=False):
+    def distance_to_goal(self, node):
+        if type(node) is not str: node = node.state
+        position_node = np.array(self.graph.locations[node])
+        position_goal = np.array(self.graph.locations[self.goal])
+        distance = float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) )
+        if self.verbose: 
+            print("Node position", position_node)
+            print("Distance to the goal", distance)
+        return distance
+
+    def h(self, node, parent):
         """Euclidean distance, except for wormholes"""
-        locs = getattr(self.graph, 'locations', None)
-        if locs:
-            if type(node) is not str:
-                node = node.state
-            position_node = np.array(locs[node])
-            position_goal = np.array(locs[self.goal])
-            if self.verbose: print("Node position", position_node)
-            # The most optimistic assumption is that a wormhole will take you right adjacent to the goal
-            if is_unknown:
-                if self.verbose: print("Unknown distance to the goal")
-                return 1 
-            if self.verbose: print("Distance to the goal", float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) ))
-            return float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) )
+        if type(node) is not str: node = node.state
+        if not self.is_wormhole(node, parent):
+            return self.distance_to_goal(node)
+        elif self.is_wormhole_entrance(node):
+            parent_h = self.distance_to_goal(parent)
+            print("Parent had h", parent_h, "so h is set to be", parent_h - 1)
+            return parent_h - 1
         else:
-            return sch.infinity
+            grandparent_h = self.distance_to_goal(parent.parent)
+            print("Grandprarent had h", grandparent_h, "so h is set to be", grandparent_h - 2)
+            return grandparent_h - 2
 
 def wormholes_maze_grid(N, M, show_plots=False):
 
@@ -220,6 +242,51 @@ def show_wormholes_maze_problem(maze_problem, node_colors=None, iterations=None)
     return pter.show_map(maze_graph_data, title=title)
 
 #%% OLD VERSIONS
+
+class WormholesGraphProblemV1(sch.GraphProblem):
+    """The problem of searching a graph with teleportation links.
+    
+    An agent at the start of a teleportation link can choose to go down the wormhole.
+    However, it cannot know in advance where the exit is"""
+
+    def __init__(self, start, end, map, wormholes, verbose=False):
+        super().__init__(start, end, map)
+        self.wormholes = wormholes
+        self.verbose = verbose
+
+    def result(self, state, action):
+        """The result of going to a neighbor is just that neighbor."""
+        return action
+
+    def is_wormhole(self, node, parent):
+        if type(node) is not str:
+            node = node.state
+        if parent and type(parent) is not str:
+            parent = parent.state
+        if parent and node in self.wormholes:
+            index = self.wormholes.index(node)
+            if index>0 and parent==self.wormholes[index-1]:
+                if self.verbose: print("Teleportation link")
+                return True
+        return False
+
+    def h(self, node, is_unknown=False):
+        """Euclidean distance, except for wormholes"""
+        locs = getattr(self.graph, 'locations', None)
+        if locs:
+            if type(node) is not str:
+                node = node.state
+            position_node = np.array(locs[node])
+            position_goal = np.array(locs[self.goal])
+            if self.verbose: print("Node position", position_node)
+            # The most optimistic assumption is that a wormhole will take you right adjacent to the goal
+            if is_unknown:
+                if self.verbose: print("Unknown distance to the goal")
+                return 1 
+            if self.verbose: print("Distance to the goal", float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) ))
+            return float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) )
+        else:
+            return sch.infinity
 
 class WormholesGraphProblemV0(sch.GraphProblem):
     """The problem of searching a graph with teleportation links.
