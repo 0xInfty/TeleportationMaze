@@ -196,12 +196,14 @@ class WormholesGraphProblem(GraphProblem):
             return self.distance_to_goal(node)
         elif self.is_wormhole_entrance(node):
             parent_h = self.distance_to_goal(parent)
-            print("Parent had h", parent_h, "so h is set to be", parent_h - self.step_cost)
+            if self.verbose: 
+                print("Parent had h", parent_h, "so h is set to be", parent_h - self.step_cost)
             return parent_h - self.step_cost
         else:
             grandparent_h = self.distance_to_goal(parent.parent)
-            print("Grandprarent had h", grandparent_h, "so h is set to be", 
-                  grandparent_h - 2*self.step_cost)
+            if self.verbose:
+                print("Grandprarent had h", grandparent_h, 
+                      "so h is set to be", grandparent_h - 2*self.step_cost)
             return grandparent_h - 2*self.step_cost
 
 def wormholes_maze_grid(N, M, show_plots=False):
