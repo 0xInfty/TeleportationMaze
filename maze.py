@@ -133,7 +133,7 @@ class WormholesGraphProblem(sch.GraphProblem):
         return False
 
     def h(self, node, is_unknown=False):
-        """The sum of the horizontal and vertical distance to the goal"""
+        """Euclidean distance, except for wormholes"""
         locs = getattr(self.graph, 'locations', None)
         if locs:
             if type(node) is not str:
@@ -145,8 +145,8 @@ class WormholesGraphProblem(sch.GraphProblem):
             if is_unknown:
                 if self.verbose: print("Unknown distance to the goal")
                 return 1 
-            if self.verbose: print("Distance to the goal", int( np.sum( np.abs( position_goal - position_node) ) ))
-            return int( np.sum( np.abs( position_goal - position_node) ) )
+            if self.verbose: print("Distance to the goal", float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) ))
+            return float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) )
         else:
             return sch.infinity
 
@@ -238,7 +238,7 @@ class WormholesGraphProblemV0(sch.GraphProblem):
         return action
 
     def h(self, node, parent=None):
-        """The sum of the horizontal and vertical distance to the goal"""
+        """Euclidean distance, except for wormholes"""
         locs = getattr(self.graph, 'locations', None)
         if locs:
             if type(node) is not str:
@@ -254,9 +254,11 @@ class WormholesGraphProblemV0(sch.GraphProblem):
                 if index>0 and parent==self.wormholes[index-1]:
                     if self.verbose: print("Teleportation link")
                     return 1 
-            if self.verbose: 
-                print("Distance to the goal", int( np.sum( np.abs( position_goal - position_node) ) ))
-            return int( np.sum( np.abs( position_goal - position_node) ) )
+            if self.verbose: print("Distance to the goal", float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) ))
+            return float( np.sqrt( np.sum( (position_goal - position_node)**2 ) ) )
+            #     print("Distance to the goal", int( np.sum( np.abs( position_goal - position_node) ) ))
+            # return int( np.sum( np.abs( position_goal - position_node) ) )
+            # The sum of the horizontal and vertical distance to the goal, except for wormholes
         else:
             return sch.infinity
     
