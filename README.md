@@ -21,7 +21,7 @@ The idea is to apply a discrete state-space search algorithm to solve a 2D maze 
 
 ## Authors and acknowledgment
 
-This repository was created and updated exclusively by Valeria Rocio Pais Malcalza, student ID 2926793.
+This repository was created and updated exclusively by Valeria Rocio Pais Malcalza, student at University of Glasgow.
 
 My most sincere thanks to the lecturers for the base activities and code provided, used as the basis for the development of this code. 
 
