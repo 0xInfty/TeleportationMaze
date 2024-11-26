@@ -16,10 +16,13 @@ The idea is to apply a discrete state-space search algorithm to solve a 2D maze 
 ```pip install numpy networkx jupyter pandas matplotlib pillow Image ipythonblocks```
 4. Download the AIMA toolbox from the course [Moodle](https://moodle.gla.ac.uk/mod/resource/view.php?id=4652387)
 5. Clone this repository
-6. Good to go :D
+6. Update the `AIMA_TOOLBOX_ROOT` variable inside the `plotter.py` module.
+7. Good to go :D
 
 ## Authors and acknowledgment
 
 This repository was created and updated exclusively by Valeria Rocio Pais Malcalza, student ID 2926793.
 
-My most sincere thanks to the lecturers for the base activities and code provided. Credits to the AIMA toolbox for the ready-to-go search tools.
+My most sincere thanks to the lecturers for the base activities and code provided, used as the basis for the development of this code. 
+
+Credits to the AIMA toolbox for the ready-to-go search tools too, since they are the fundamental bricks upon both the lecturers' and this repository's code were developed.
